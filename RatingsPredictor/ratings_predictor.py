@@ -3,10 +3,14 @@ from random import randint
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
 from sklearn.metrics import mean_absolute_error
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
 import numpy as np
 
-ratings = pd.read_csv('ratings_w_box_off.csv', encoding = 'ISO-8859-1')
+ratings = pd.read_csv('ratings3.csv', encoding = 'ISO-8859-1')
 
 # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
 #     print(ratings.head())
@@ -47,8 +51,8 @@ for i in range(len(ratings.Genres)):
 			ratings.iloc[i, ratings.columns.get_loc(genre1)] = 0
 
 
-features = ['IMDb Rating', 'Year', # 'Num Votes', 
-			'box_office_gross_usa'] # + genre_columns
+features = ['IMDb Rating', 'Year', 'Num Award Noms', # 'box_office_gross_usa',
+			'infl_adjusted_box_office_gross_usa'] # + genre_columns
 X = ratings[features]
 y = ratings['Your Rating']
 
@@ -63,22 +67,34 @@ train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
 reg = LinearRegression().fit(train_X, train_y)
 pred = reg.predict(val_X)
 
-# print(pred)
+
+# Pipeline 		# I don't really know what this does
+my_pipeline = Pipeline(steps=[('preprocessor', SimpleImputer()),
+                              ('model', LinearRegression())
+                             ])
+
+# Cross validation 		# I think I know what this does
+scores = -1 * cross_val_score(my_pipeline, X, y,
+                              cv=5,
+                              scoring='neg_mean_absolute_error')
+
+
+print("Mean of cross validation scores (with 5 folds): ", scores.mean())
 
 rand_ints = []
 for i in range(len(pred)):
 	rand_ints.append(randint(5, 10))
 
 
-index = 0
-for i in val_y:
-	print(i, " ", pred[index], "  ", rand_ints[i])
-	index = index + 1
+# index = 0
+# for i in val_y:
+# 	print(i, " ", pred[index], "  ", rand_ints[i])
+# 	index = index + 1
 
 
-print("pred mae: ", mean_absolute_error(val_y, pred))
-print("rand mae: ", mean_absolute_error(val_y, rand_ints))
-print(ratings.describe())
+# print("pred mae: ", mean_absolute_error(val_y, pred))
+# print("rand mae: ", mean_absolute_error(val_y, rand_ints))
+# print(ratings.describe())
 
 # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
 # 	print(ratings.head())
